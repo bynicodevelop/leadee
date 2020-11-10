@@ -1,10 +1,13 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:leadeetuto/screens/Gallery.dart';
 import 'package:path/path.dart' show join;
 import 'package:path_provider/path_provider.dart';
+import 'package:storage_path/storage_path.dart';
 
 class CameraScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
@@ -146,16 +149,51 @@ class _CameraScreenState extends State<CameraScreen> {
                             color: Colors.white,
                           ),
                         ),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            customBorder: CircleBorder(),
-                            onTap: () => print('gallery access'),
-                            child: Icon(
+                        child: FutureBuilder(
+                          future: StoragePath.imagesPath,
+                          builder: (context, snapshot) {
+                            List<dynamic> images = [];
+
+                            Widget defaultWidget = Icon(
                               Icons.photo_size_select_actual,
                               color: Colors.white,
-                            ),
-                          ),
+                            );
+
+                            if (snapshot.connectionState ==
+                                ConnectionState.done) {
+                              images = jsonDecode(snapshot.data);
+
+                              if (images.length > 0 &&
+                                  images[0]['files'].length > 0) {
+                                defaultWidget = CircleAvatar(
+                                  backgroundColor: Colors.transparent,
+                                  backgroundImage: FileImage(
+                                    File(images[0]['files'][0]),
+                                  ),
+                                );
+                              }
+                            }
+
+                            return Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                customBorder: CircleBorder(),
+                                onTap: () async {
+                                  dynamic data = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => GalleryScreen(
+                                        images: images,
+                                      ),
+                                    ),
+                                  );
+
+                                  setState(() => _lastImage = data['path']);
+                                },
+                                child: defaultWidget,
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ),
